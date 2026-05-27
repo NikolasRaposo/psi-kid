@@ -38,7 +38,7 @@ public class ObjectController : MonoBehaviour {
 
         offset = selectedObject.transform.position - cam.ScreenToWorldPoint(Input.mousePosition);
         selectedObjectRb.gravityScale = 0f;
-        selectedObjectRb.velocity = Vector2.zero;
+        selectedObjectRb.linearVelocity = Vector2.zero;
 
         // Ativa o sprite "selecionado" do objeto atual
         selectedObject.transform.Find("boxSelected").gameObject.SetActive(true);
@@ -52,7 +52,7 @@ public class ObjectController : MonoBehaviour {
             selectedObjectRb.gravityScale = 1f;
         }
 
-        // Restaura o sprite "não selecionado" do objeto atual
+        // Restaura o sprite "nï¿½o selecionado" do objeto atual
         selectedObject.transform.Find("boxSelected").gameObject.SetActive(false);
         selectedObject.transform.Find("boxUnselected").gameObject.SetActive(true);
 

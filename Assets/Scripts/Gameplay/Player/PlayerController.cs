@@ -8,7 +8,7 @@ public class PlayerController : MonoBehaviour {
     private bool isGrounded;
     private float moveInput;
     public LayerMask groundLayer;
-    public Transform groundCheck; // Ponto de verificação de solo
+    public Transform groundCheck; // Ponto de verificaï¿½ï¿½o de solo
 
     private Rigidbody2D rb;
     private PlayerState currentState;
@@ -20,19 +20,19 @@ public class PlayerController : MonoBehaviour {
         rb = GetComponent<Rigidbody2D>();
         animator = GetComponentInChildren<Animator>();
         if (animator == null) {
-            Debug.LogError("Animator não encontrado em objetos filhos do PlayerController.");
+            Debug.LogError("Animator nï¿½o encontrado em objetos filhos do PlayerController.");
         }
     }
 
     private void Update() {
-        // Verifica se o jogador está no chão
+        // Verifica se o jogador estï¿½ no chï¿½o
         isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckDistance, groundLayer);
 
         moveInput = Input.GetAxisRaw("Horizontal");
-        // Alterna as animações
+        // Alterna as animaï¿½ï¿½es
         HandleAnimations();
 
-        // Inverte a escala do sprite dependendo da direção do movimento
+        // Inverte a escala do sprite dependendo da direï¿½ï¿½o do movimento
         FlipSprite();
         // Realiza o pulo
         if (Input.GetButtonDown("Jump") && isGrounded) {
@@ -46,7 +46,7 @@ public class PlayerController : MonoBehaviour {
 
     private void MovePlayer() {
         // Move o jogador de acordo com o input
-        rb.velocity = new Vector2(moveInput * moveSpeed, rb.velocity.y);
+        rb.linearVelocity = new Vector2(moveInput * moveSpeed, rb.linearVelocity.y);
     }
     private void OnEnable() {
         PlayerInputHandler.OnJump += Jump;
@@ -65,7 +65,7 @@ public class PlayerController : MonoBehaviour {
 
     public void Jump() {
         if (isGrounded) {
-            rb.velocity = new Vector2(rb.velocity.x, jumpForce);
+            rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
         }
     }
 
@@ -73,19 +73,19 @@ public class PlayerController : MonoBehaviour {
         if (isGrounded) {
             animator.SetBool("isJumping", false);
             if (moveInput != 0) {
-                // Se o jogador está se movendo
+                // Se o jogador estï¿½ se movendo
                 animator.SetBool("isWalking", true);
             } else {
-                // Se o jogador não está se movendo
+                // Se o jogador nï¿½o estï¿½ se movendo
                 animator.SetBool("isWalking", false);
             }
         } else {
-            // Se o jogador está no ar
+            // Se o jogador estï¿½ no ar
             animator.SetBool("isJumping", true);
         }
     }
     private void FlipSprite() {
-        // Inverte a direção do sprite com base no movimento horizontal
+        // Inverte a direï¿½ï¿½o do sprite com base no movimento horizontal
         if (moveInput > 0) {
             transform.localScale = new Vector3(1, 1, 1); // Normal
         } else if (moveInput < 0) {
