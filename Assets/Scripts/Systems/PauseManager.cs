@@ -1,24 +1,30 @@
 using UnityEngine;
 
+/// <summary>
+/// Toggles the paused state of the game: freezes time and shows the pause panel.
+/// Listens to the pause input and to the GameManager's unpause signal.
+/// </summary>
 public class PauseManager : MonoBehaviour {
-    private bool isPaused = false;
-    public GameObject pausePanelUI;  // Referência à tela de fase concluída
-    void Start() {
-        // Certificar que a UI de fase concluída está desativada no início
-        pausePanelUI.SetActive(false);
+    [Tooltip("Panel shown while the game is paused.")]
+    [SerializeField] private GameObject pausePanelUI;
 
+    private bool isPaused;
+
+    private void Start() {
+        pausePanelUI.SetActive(false);
     }
+
     private void OnEnable() {
-        PlayerInputHandler.OnPause += TogglePause; // Inscreve-se no evento de pausa
+        PlayerInputHandler.OnPause += TogglePause;
         GameManager.OnUnpause += TogglePause;
     }
 
     private void OnDisable() {
-        PlayerInputHandler.OnPause -= TogglePause; // Desinscreve-se do evento quando o objeto for destruído
+        PlayerInputHandler.OnPause -= TogglePause;
         GameManager.OnUnpause -= TogglePause;
     }
 
-    void TogglePause() {
+    private void TogglePause() {
         if (isPaused) {
             ResumeGame();
         } else {
@@ -26,14 +32,15 @@ public class PauseManager : MonoBehaviour {
         }
     }
 
-    void PauseGame() {
-        Time.timeScale = 0f; // Pausa o tempo do jogo
+    private void PauseGame() {
+        Time.timeScale = 0f;
         isPaused = true;
         pausePanelUI.SetActive(true);
     }
 
+    /// <summary>Resumes gameplay and hides the pause panel.</summary>
     public void ResumeGame() {
-        Time.timeScale = 1f; // Retoma o tempo normal do jogo
+        Time.timeScale = 1f;
         isPaused = false;
         pausePanelUI.SetActive(false);
     }

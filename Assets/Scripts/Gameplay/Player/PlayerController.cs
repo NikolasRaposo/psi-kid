@@ -1,95 +1,90 @@
 using System;
 using UnityEngine;
 
+/// <summary>
+/// Drives the player's horizontal movement, jumping, ground check and sprite
+/// facing. Interaction (e.g. elevators) is received from
+/// <see cref="PlayerInputHandler"/>; horizontal movement and jump are read from
+/// the legacy input axes.
+/// </summary>
+[RequireComponent(typeof(Rigidbody2D))]
 public class PlayerController : MonoBehaviour {
-    public float moveSpeed = 5f;
-    public float jumpForce = 7f;
-    public float groundCheckDistance = 0.2f;
-    private bool isGrounded;
-    private float moveInput;
-    public LayerMask groundLayer;
-    public Transform groundCheck; // Ponto de verifica��o de solo
+    [Header("Movement")]
+    [Tooltip("Horizontal movement speed, in units per second.")]
+    [SerializeField] private float moveSpeed = 5f;
+    [Tooltip("Vertical impulse applied when the player jumps.")]
+    [SerializeField] private float jumpForce = 7f;
+
+    [Header("Ground check")]
+    [Tooltip("Transform marking the point used to test for ground contact.")]
+    [SerializeField] private Transform groundCheck;
+    [Tooltip("Radius of the ground-check overlap circle.")]
+    [SerializeField] private float groundCheckDistance = 0.2f;
+    [Tooltip("Layers considered 'ground' for jumping.")]
+    [SerializeField] private LayerMask groundLayer;
+
+    /// <summary>Raised when the player requests a teleport (handled by elevators).</summary>
+    public event Action<GameObject> OnTeleportRequest;
 
     private Rigidbody2D rb;
-    private PlayerState currentState;
     private Animator animator;
-
-    public event Action<GameObject> OnTeleportRequest;
+    private bool isGrounded;
+    private float moveInput;
 
     private void Awake() {
         rb = GetComponent<Rigidbody2D>();
         animator = GetComponentInChildren<Animator>();
         if (animator == null) {
-            Debug.LogError("Animator n�o encontrado em objetos filhos do PlayerController.");
+            Debug.LogError("Animator not found in the PlayerController's children.");
         }
     }
 
-    private void Update() {
-        // Verifica se o jogador est� no ch�o
-        isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckDistance, groundLayer);
-
-        moveInput = Input.GetAxisRaw("Horizontal");
-        // Alterna as anima��es
-        HandleAnimations();
-
-        // Inverte a escala do sprite dependendo da dire��o do movimento
-        FlipSprite();
-        // Realiza o pulo
-        if (Input.GetButtonDown("Jump") && isGrounded) {
-            Jump();
-        }
-    }
-    private void FixedUpdate() {
-        // Movimenta o jogador horizontalmente
-        MovePlayer();
-    }
-
-    private void MovePlayer() {
-        // Move o jogador de acordo com o input
-        rb.linearVelocity = new Vector2(moveInput * moveSpeed, rb.linearVelocity.y);
-    }
     private void OnEnable() {
-        PlayerInputHandler.OnJump += Jump;
         PlayerInputHandler.OnInteraction += HandleInteraction;
     }
 
     private void OnDisable() {
-        PlayerInputHandler.OnJump -= Jump;
+        PlayerInputHandler.OnInteraction -= HandleInteraction;
+    }
+
+    private void Update() {
+        isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckDistance, groundLayer);
+        moveInput = Input.GetAxisRaw("Horizontal");
+
+        HandleAnimations();
+        FlipSprite();
+
+        if (Input.GetButtonDown("Jump") && isGrounded) {
+            Jump();
+        }
+    }
+
+    private void FixedUpdate() {
+        rb.linearVelocity = new Vector2(moveInput * moveSpeed, rb.linearVelocity.y);
+    }
+
+    private void Jump() {
+        rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
     }
 
     private void HandleInteraction() {
-        if (OnTeleportRequest != null) {
-            OnTeleportRequest.Invoke(gameObject);
-        }
-    }
-
-    public void Jump() {
-        if (isGrounded) {
-            rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
-        }
+        OnTeleportRequest?.Invoke(gameObject);
     }
 
     private void HandleAnimations() {
         if (isGrounded) {
             animator.SetBool("isJumping", false);
-            if (moveInput != 0) {
-                // Se o jogador est� se movendo
-                animator.SetBool("isWalking", true);
-            } else {
-                // Se o jogador n�o est� se movendo
-                animator.SetBool("isWalking", false);
-            }
+            animator.SetBool("isWalking", moveInput != 0);
         } else {
-            // Se o jogador est� no ar
             animator.SetBool("isJumping", true);
         }
     }
+
     private void FlipSprite() {
-        // Inverte a dire��o do sprite com base no movimento horizontal
         if (moveInput > 0) {
-            transform.localScale = new Vector3(1, 1, 1); // Normal
+            transform.localScale = new Vector3(1, 1, 1);
         } else if (moveInput < 0) {
-            transform.localScale = new Vector3(-1, 1, 1); // Invertido
+            transform.localScale = new Vector3(-1, 1, 1);
         }
     }
 }

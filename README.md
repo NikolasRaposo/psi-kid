@@ -21,18 +21,18 @@ Psi-Kid is a solo learning project I built at FIAP (Game Development). Every pro
 
 | Action | Input |
 | --- | --- |
-| Select or release an object | Right click |
-| Move the selected object | WASD |
-| Lower or raise the object | Shift / Space |
-| Move the character (no object selected) | WASD |
+| Move | WASD |
 | Jump | Space |
+| Telekinesis (select and move an object) | Hold left mouse button and drag |
+| Use elevator / interact | Shift |
+| Pause | Esc |
 
 ## Tech
 
 - Engine: Unity 2022.3.48f1 (LTS)
 - Language: C#
 - Input: Unity Input System
-- Structure: gameplay split into focused scripts (object manipulation, pressure plates, elevators), the player split into controller, input handler and state, plus game, pause and camera managers.
+- Structure: gameplay split into focused scripts (object manipulation, pressure plates, elevators), the player split into controller and input handler, plus level timer, scene loader, pause and camera managers.
 
 ## Project structure
 

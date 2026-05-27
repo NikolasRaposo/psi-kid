@@ -1,42 +1,47 @@
 using UnityEngine;
 
+/// <summary>
+/// A platform that descends while the player stands on it, carrying the player
+/// down at the same speed. The player is parented to the platform during the ride.
+/// </summary>
+[RequireComponent(typeof(Rigidbody2D))]
 public class Elevator : MonoBehaviour {
-    public float speed = 4f; // Velocidade de descida
-    private bool isPlayerOnPlatform = false; // Verifica se o jogador está na plataforma
+    [Tooltip("Descent speed in units per second.")]
+    [SerializeField] private float speed = 4f;
+
     private Rigidbody2D rb;
-    private Transform player; // Armazena a referência ao jogador
+    private Transform player;
+    private bool isPlayerOnPlatform;
 
     private void Start() {
         rb = GetComponent<Rigidbody2D>();
     }
 
     private void Update() {
-        if (isPlayerOnPlatform && player != null) {
-            // Move a plataforma para baixo
-            Vector2 targetPosition = rb.position + new Vector2(0, -speed * Time.deltaTime);
-            rb.MovePosition(targetPosition);
-
-            // Mova o jogador junto com a plataforma na mesma velocidade
-            Vector2 playerPosition = player.position;
-            player.position = new Vector2(playerPosition.x, playerPosition.y - speed * Time.deltaTime);
+        if (!isPlayerOnPlatform || player == null) {
+            return;
         }
+
+        float delta = speed * Time.deltaTime;
+        rb.MovePosition(rb.position + new Vector2(0f, -delta));
+        player.position = new Vector2(player.position.x, player.position.y - delta);
     }
 
     private void OnCollisionEnter2D(Collision2D collision) {
-        // Verifica se o objeto que colidiu é o jogador
         if (collision.gameObject.CompareTag("Player")) {
             isPlayerOnPlatform = true;
-            player = collision.transform; // Armazena a referência ao jogador
-            player.SetParent(transform); // Faz o jogador ser filho da plataforma
+            player = collision.transform;
+            player.SetParent(transform);
         }
     }
 
     private void OnCollisionExit2D(Collision2D collision) {
-        // Verifica se o jogador saiu da plataforma
         if (collision.gameObject.CompareTag("Player")) {
             isPlayerOnPlatform = false;
-            player.SetParent(null); // Remove o jogador da plataforma
-            player = null; // Limpa a referência ao jogador
+            if (player != null) {
+                player.SetParent(null);
+            }
+            player = null;
         }
     }
 }

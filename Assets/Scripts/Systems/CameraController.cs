@@ -1,43 +1,54 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using Cinemachine;
-using Unity.VisualScripting;
 
+/// <summary>
+/// Switches between a set of Cinemachine virtual cameras, one per room or
+/// section. Only the active camera is enabled at any time.
+/// </summary>
 public class CameraController : MonoBehaviour {
-    public CinemachineVirtualCamera[] cameras;
-    public CinemachineVirtualCamera startCamera;
-    public CinemachineVirtualCamera currentCamera;
+    [Tooltip("All virtual cameras this controller can switch between, in order.")]
+    [SerializeField] private CinemachineVirtualCamera[] cameras;
+    [Tooltip("Camera enabled when the level starts.")]
+    [SerializeField] private CinemachineVirtualCamera startCamera;
+
+    private CinemachineVirtualCamera currentCamera;
 
     private void Start() {
         currentCamera = startCamera;
     }
 
+    /// <summary>Activates the camera at <paramref name="index"/> and disables the previous one.</summary>
     public void ChangeCam(int index) {
-        currentCamera.gameObject.SetActive(false);
-        currentCamera = cameras[index];
-        currentCamera.gameObject.SetActive(true);
+        if (index < 0 || index >= cameras.Length) {
+            Debug.LogWarning($"ChangeCam: camera index {index} is out of range.");
+            return;
+        }
+        SetActiveCamera(cameras[index]);
     }
+
+    /// <summary>Switches to the next camera in the list, wrapping past the end.</summary>
     public void NextCam() {
-        for (int i = 0; i < cameras.Length; i++)
-        {
-            if (cameras[i] == currentCamera)
-            {
-                currentCamera.gameObject.SetActive(false);
-                currentCamera = cameras[i+1];
-                currentCamera.gameObject.SetActive(true);
-                return;
-            }
+        int current = System.Array.IndexOf(cameras, currentCamera);
+        if (current < 0 || cameras.Length == 0) {
+            return;
         }
+        SetActiveCamera(cameras[(current + 1) % cameras.Length]);
     }
+
+    /// <summary>Switches to the previous camera in the list, wrapping past the start.</summary>
     public void PreviousCam() {
-        for (int i = 0; i < cameras.Length; i++) {
-            if (cameras[i] == currentCamera) {
-                currentCamera.gameObject.SetActive(false);
-                currentCamera = cameras[i - 1];
-                currentCamera.gameObject.SetActive(true);
-                return;
-            }
+        int current = System.Array.IndexOf(cameras, currentCamera);
+        if (current < 0 || cameras.Length == 0) {
+            return;
         }
+        SetActiveCamera(cameras[(current - 1 + cameras.Length) % cameras.Length]);
+    }
+
+    private void SetActiveCamera(CinemachineVirtualCamera next) {
+        if (currentCamera != null) {
+            currentCamera.gameObject.SetActive(false);
+        }
+        currentCamera = next;
+        currentCamera.gameObject.SetActive(true);
     }
 }

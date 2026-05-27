@@ -1,24 +1,28 @@
 using System;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
+/// <summary>
+/// In-game flow actions (try again, restart, return to menu) wired to UI buttons.
+/// Notifies listeners when the game should leave its paused state.
+/// </summary>
 public class GameManager : MonoBehaviour {
+    /// <summary>Raised when gameplay should resume (used to close the pause UI).</summary>
     public static event Action OnUnpause;
 
-    // Tentar de novo após finalizar
+    /// <summary>Restarts the current level (used by the "try again" flow).</summary>
     public void TryAgain() {
-        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+        SceneLoader.ReloadCurrent();
     }
 
-    // Reinicia o nível atual
+    /// <summary>Restarts the current level and signals listeners to unpause.</summary>
     public void RestartLevel() {
-        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+        SceneLoader.ReloadCurrent();
         OnUnpause?.Invoke();
     }
 
-    // Carrega a cena do menu principal
+    /// <summary>Loads the main menu and signals listeners to unpause.</summary>
     public void LoadMainMenu() {
-        SceneManager.LoadScene(0);
+        SceneLoader.LoadMainMenu();
         OnUnpause?.Invoke();
     }
 }
