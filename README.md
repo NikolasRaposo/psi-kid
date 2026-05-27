@@ -57,7 +57,11 @@ Or just play the build on itch.io (link above).
 
 ## Credits and notes
 
-Solo project by Nikolas Raposo (FIAP, 2024). Some of the art (the main character, the movable box and the pressure plates) is original; the rest of the environment uses third-party asset packs. Part of the code was developed with AI assistance.
+Solo project by Nikolas Raposo (FIAP, 2024).
+
+- Original art (the main character, the movable box and the pressure plates): Nikolas Raposo.
+- Environment tiles: Free Pixel Art Tiles by TotusLotus, used under the author's license (https://totuslotus.itch.io/free-pixel-art-tiles).
+- Part of the code was developed with AI assistance.
 
 ## License
 
