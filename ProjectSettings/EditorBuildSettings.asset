@@ -12,3 +12,4 @@ EditorBuildSettings:
     path: Assets/Scenes/Levels/Fase 01.unity
     guid: 0b4bf9b87f4d0344d91802a4235ed4b6
   m_configObjects: {}
+  m_UseUCBPForAssetBundles: 0
