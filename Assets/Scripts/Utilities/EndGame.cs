@@ -21,6 +21,7 @@ public class EndGame : MonoBehaviour {
 
     private void ShowLevelComplete() {
         levelCompleteUI.SetActive(true);
+        Sfx.Play("level_complete", 0.6f);
         Time.timeScale = 0f;
     }
 
