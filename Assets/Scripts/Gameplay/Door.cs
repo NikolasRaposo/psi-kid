@@ -2,19 +2,20 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// A lab door that slides up into the ceiling when any plate wired to it is
-/// satisfied, and slides back down when none is. Replaces the old behaviour of
-/// switching the door GameObject off, so the change reads on screen.
+/// A lab door made of two panels that retract like shutters (the top one into
+/// the ceiling, the bottom one into the floor) when any plate wired to it is
+/// satisfied, and close again when none is. No masks are involved, so it works
+/// wherever the door sits, even next to other doors.
 /// </summary>
 public class Door : MonoBehaviour {
-    [Tooltip("How far the door panels travel up when open (world units).")]
-    [SerializeField] private float travel = 2f;
     [Tooltip("Seconds to open or close.")]
     [SerializeField] private float duration = 0.22f;
 
     private readonly HashSet<Object> openSources = new();
     private readonly List<Transform> panels = new();
     private readonly List<Vector3> closedPos = new();
+    private readonly List<Vector3> closedScale = new();
+    private readonly List<float> anchor = new(); // edge each panel retracts into (local y)
     private Collider2D[] colliders;
     private float t; // 0 closed, 1 open
     private bool open;
@@ -24,16 +25,14 @@ public class Door : MonoBehaviour {
     private void Awake() {
         colliders = GetComponentsInChildren<Collider2D>();
         foreach (var sr in GetComponentsInChildren<SpriteRenderer>()) {
-            panels.Add(sr.transform);
-            closedPos.Add(sr.transform.localPosition);
-            // panels hide when they slide into the ceiling
-            sr.maskInteraction = SpriteMaskInteraction.VisibleInsideMask;
+            var tr = sr.transform;
+            panels.Add(tr);
+            closedPos.Add(tr.localPosition);
+            closedScale.Add(tr.localScale);
+            float half = sr.sprite != null ? sr.sprite.bounds.extents.y * tr.localScale.y : 0.5f;
+            // upper panel retracts up, lower panel retracts down
+            anchor.Add(tr.localPosition.y >= 0f ? tr.localPosition.y + half : tr.localPosition.y - half);
         }
-        // a mask the size of the closed door: anything that slides above it is hidden
-        var mask = new GameObject("DoorMask").AddComponent<SpriteMask>();
-        mask.transform.SetParent(transform, false);
-        mask.sprite = Resources.Load<Sprite>("Art/door_mask");
-        mask.transform.localPosition = new Vector3(0f, 0f, 0f);
     }
 
     /// <summary>Registers whether a given source (a plate) wants this door open.</summary>
@@ -60,9 +59,12 @@ public class Door : MonoBehaviour {
             return;
         }
         t = Mathf.MoveTowards(t, target, Time.deltaTime / duration);
-        float eased = t * t * (3f - 2f * t);
+        float s = 1f - t * t * (3f - 2f * t); // remaining panel height (1 closed .. 0 open)
         for (int i = 0; i < panels.Count; i++) {
-            panels[i].localPosition = closedPos[i] + Vector3.up * travel * eased;
+            var p = closedPos[i];
+            float y = Mathf.Lerp(anchor[i], p.y, s);
+            panels[i].localPosition = new Vector3(p.x, y, p.z);
+            panels[i].localScale = new Vector3(closedScale[i].x, closedScale[i].y * Mathf.Max(s, 0.0001f), closedScale[i].z);
         }
     }
 }

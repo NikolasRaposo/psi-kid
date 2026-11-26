@@ -11,11 +11,9 @@ public class PsiCursor : MonoBehaviour {
 
     private SpriteRenderer sr;
     private Camera cam;
-    private ObjectController telekinesis;
 
     private void Start() {
         cam = Camera.main;
-        telekinesis = FindFirstObjectByType<ObjectController>();
         sr = new GameObject("PsiCursorSprite").AddComponent<SpriteRenderer>();
         sr.transform.SetParent(transform, false);
         sr.sprite = Resources.Load<Sprite>("Art/psi_cursor");
@@ -34,7 +32,7 @@ public class PsiCursor : MonoBehaviour {
         Vector3 p = cam.ScreenToWorldPoint(GameInput.PointerScreen);
         p.z = 0f;
         sr.transform.position = p;
-        bool holding = telekinesis != null && telekinesis.IsDragging();
+        bool holding = ObjectController.HeldCount > 0;
         float scale = size * (holding ? 1.25f : 1f);
         sr.transform.localScale = Vector3.one * scale;
         if (holding) {

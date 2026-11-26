@@ -181,3 +181,52 @@ if __name__ == "__main__":
     particle()
     cursor()
     vignette()
+
+
+# ---------------------------------------------------------------- paredes: repintura do Tileset_10 (TotusLotus)
+# Mantém o desenho e as fatias do tileset original e troca a paleta lilás/magenta
+# por aço azulado com detalhe verde-azulado, que contrasta com a parede do fundo.
+WALL_REMAP = {
+    (104, 111, 153): (84, 96, 126),    # corpo
+    (223, 224, 232): (178, 194, 216),  # brilho
+    (105, 36, 100): (40, 46, 68),      # sombra
+    (156, 42, 112): (46, 146, 156),    # borda (era magenta)
+    (0, 0, 0): (12, 10, 20),           # contorno
+}
+
+
+def recolor_walls():
+    path = OUT.parents[1] / "Sprites" / "Environment" / "Tiles_pack" / "Tileset_10.png"
+    src = path.with_name("Tileset_10.original.png")
+    if not src.exists():
+        src = path  # primeira vez: usa o arquivo atual como fonte
+        Image.open(path).save(path.parents[3].parent / "Tools" / "art" / "Tileset_10.original.png")
+    img = Image.open(path.parents[3].parent / "Tools" / "art" / "Tileset_10.original.png").convert("RGBA")
+    px = img.load()
+    for y in range(img.height):
+        for x in range(img.width):
+            r, g, b, a = px[x, y]
+            if a and (r, g, b) in WALL_REMAP:
+                px[x, y] = WALL_REMAP[(r, g, b)] + (a,)
+    img.save(path)
+    print("ok Tileset_10 repintado")
+
+
+if __name__ == "__main__" and "--paredes" in __import__("sys").argv:
+    recolor_walls()
+
+
+# ---------------------------------------------------------------- ícone do tutorial (32x32): caixa segurada + cursor psíquico
+def tutorial_icon():
+    path = OUT.parents[1] / "Sprites" / "UI" / "tutorial_01.png"
+    img = Image.new("RGBA", (32, 32), (0, 0, 0, 0))
+    box = Image.open(OUT / "box_held.png")
+    cur = Image.open(OUT / "psi_cursor.png")
+    img.paste(box, (4, 4), box)
+    img.paste(cur, (14, 14), cur)
+    img.save(path)
+    print("ok tutorial_01")
+
+
+if __name__ == "__main__" and "--tutorial" in __import__("sys").argv:
+    tutorial_icon()

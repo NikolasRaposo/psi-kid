@@ -13,6 +13,12 @@ using UnityEngine;
 public class ObjectController : MonoBehaviour {
     private const string MovableTag = "Movable";
 
+    /// <summary>How many objects are being held right now (any box).</summary>
+    public static int HeldCount { get; private set; }
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStatics() => HeldCount = 0;
+
     [Tooltip("Physics layer the selection raycast checks against.")]
     [SerializeField] private LayerMask selectableLayer;
 
@@ -59,7 +65,8 @@ public class ObjectController : MonoBehaviour {
         if (GameInput.PointerPressed) {
             Vector2 worldPoint = cam.ScreenToWorldPoint(GameInput.PointerScreen);
             RaycastHit2D hit = Physics2D.Raycast(worldPoint, Vector2.zero, Mathf.Infinity, selectableLayer);
-            if (hit.collider != null && hit.collider.CompareTag(MovableTag)) {
+            // Each box carries its own controller: react only to clicks on this box.
+            if (hit.collider != null && hit.collider.CompareTag(MovableTag) && hit.collider.gameObject == gameObject) {
                 SelectObject(hit.collider.gameObject);
             }
         }
@@ -71,6 +78,7 @@ public class ObjectController : MonoBehaviour {
 
     private void SelectObject(GameObject hitObject) {
         isDragging = true;
+        HeldCount++;
         selectedObject = hitObject;
         selectedObjectRb = selectedObject.GetComponent<Rigidbody2D>();
 
@@ -92,6 +100,7 @@ public class ObjectController : MonoBehaviour {
 
     private void DeselectObject() {
         isDragging = false;
+        HeldCount = Mathf.Max(0, HeldCount - 1);
 
         if (selectedObjectRb != null) {
             selectedObjectRb.gravityScale = 1f;
@@ -101,8 +110,10 @@ public class ObjectController : MonoBehaviour {
             SetSelectionVisual(false);
         }
 
-        aura.enabled = false;
-        aura.transform.SetParent(transform, false);
+        if (aura != null) {
+            aura.enabled = false;
+            aura.transform.SetParent(transform, false);
+        }
         if (hum != null) {
             Destroy(hum.gameObject);
         }
@@ -134,6 +145,7 @@ public class ObjectController : MonoBehaviour {
 
         beam = new GameObject("PsiBeam").AddComponent<LineRenderer>();
         beam.transform.SetParent(transform, false);
+        beam.useWorldSpace = true;
         beam.material = spriteMat;
         beam.positionCount = 12;
         beam.widthCurve = new AnimationCurve(new Keyframe(0, 0.05f), new Keyframe(0.5f, 0.11f), new Keyframe(1, 0.05f));
@@ -145,7 +157,9 @@ public class ObjectController : MonoBehaviour {
         aura = MakeGlow("BoxAura", 2.4f, 4);
         aura.enabled = false;
         if (player != null) {
-            playerAura = MakeGlow("KidAura", 2.0f, 0);
+            var kidSprite = player.GetComponentInChildren<SpriteRenderer>();
+            playerAura = MakeGlow("KidAura", 2.0f, kidSprite != null ? kidSprite.sortingOrder - 1 : -1);
+            if (kidSprite != null) playerAura.sortingLayerID = kidSprite.sortingLayerID;
             playerAura.transform.SetParent(player, false);
             playerAura.transform.localPosition = new Vector3(0, 0.3f, 0);
             playerAura.enabled = false;
@@ -219,6 +233,12 @@ public class ObjectController : MonoBehaviour {
             float k = i / (float)(beam.positionCount - 1);
             float wobble = Mathf.Sin(k * Mathf.PI) * (Mathf.Sin(t * 30f + k * 9f) * beamJitter + Mathf.Sin(t * 7f) * beamJitter * 0.6f);
             beam.SetPosition(i, Vector3.Lerp(a, b, k) + n * wobble);
+        }
+    }
+
+    private void OnDisable() {
+        if (isDragging) {
+            DeselectObject();
         }
     }
 

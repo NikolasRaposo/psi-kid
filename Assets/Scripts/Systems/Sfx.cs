@@ -13,6 +13,9 @@ public static class Sfx {
     private static int next;
     private static Transform root;
 
+    /// <summary>Raised with the clip name whenever a sound plays (used by capture tools).</summary>
+    public static event System.Action<string> Played;
+
     private static AudioClip Clip(string name) {
         if (!Cache.TryGetValue(name, out var clip)) {
             clip = Resources.Load<AudioClip>("Sfx/" + name);
@@ -48,6 +51,7 @@ public static class Sfx {
         next = (next + 1) % PoolSize;
         src.pitch = pitch;
         src.PlayOneShot(clip, volume);
+        Played?.Invoke(name);
     }
 
     /// <summary>Creates a looping source for a held sound (stop it by destroying or calling Stop).</summary>
@@ -62,6 +66,7 @@ public static class Sfx {
         src.loop = true;
         src.volume = volume;
         src.Play();
+        Played?.Invoke(name);
         return src;
     }
 }
