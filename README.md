@@ -8,7 +8,7 @@
 
 <p>
   <a href="https://nikolasraposo.itch.io/psi-kid"><b>▶ Play in browser</b></a> ·
-  <a href="https://youtu.be/s2tMrXUq2v0">🎬 Full playthrough</a> ·
+  <a href="https://youtu.be/AGGcf6Jo-eU">🎬 Trailer</a> ·
   <a href="https://nikolasraposo-portfolio.vercel.app/projetos/psi-kid/">🌐 Case study</a>
 </p>
 
