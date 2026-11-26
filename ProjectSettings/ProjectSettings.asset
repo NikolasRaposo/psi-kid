@@ -13,7 +13,7 @@ PlayerSettings:
   useOnDemandResources: 0
   accelerometerFrequency: 60
   companyName: NRMV Tecnologia LTDA
-  productName: Psi-kid
+  productName: PSI-KID
   defaultCursor: {fileID: 0}
   cursorHotspot: {x: 0, y: 0}
   m_SplashScreenBackgroundColor: {r: 0.28235295, g: 0, b: 0.41176474, a: 1}

@@ -1,175 +1,162 @@
-"""Desenha a protagonista do PSI-KID (menina careca de camisola de laboratório), quadro a quadro, nas mesmas folhas e fatias
-das animações originais (células de 32x32; o corpo ocupa x 6..25, pés na linha 31).
+"""Protagonista do PSI-KID, desenhada pixel a pixel (mapa de caracteres), com as
+técnicas de pixel art profissionais (Slynyrd, Derek Yu, saint11):
 
-Uso: python Tools/art/gerar_personagem.py [--preview saida.png]
-Sobrescreve Assets/Sprites/Characters/{idle,walking,jumping,power,power_walking,player}.png
-mantendo o tamanho de cada folha, então os .meta (fatias) e as animações continuam válidos.
+- silhueta primeiro; criança com ~2,3 cabeças, cabeça 10 px, olhos 1x2 baixos na cabeça
+- rampas com hue shift da paleta Endesga 32 (pele, camisola branca fria)
+- contorno escuro colorido por fora (#262b44) e selout por dentro (sem preto interno)
+- clusters grandes, curvas sem jaggies (degraus 1-2-3), brilho da careca em arco,
+  sombra fria do cabelo raspado e orelha para a cabeça não virar "bola"
+- caminhada com contato/passagem + bob de 1 px, pulo com pernas recolhidas,
+  poder com antecipação, braço estendido, olhos ciano e um fio de sangue no nariz
+
+Uso: python Tools/art/gerar_personagem.py [--preview saida.png [fundo.png]]
+Escreve as folhas em Assets/Sprites/Characters mantendo tamanho e fatias originais.
 """
-import math
 import sys
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 
 CHAR = Path(__file__).resolve().parents[2] / "Assets" / "Sprites" / "Characters"
 
-T = (0, 0, 0, 0)
-OUT = (20, 14, 30, 255)
-SKIN = (246, 204, 166, 255)
-SKIN_SH = (216, 164, 130, 255)
-HAIR = (62, 44, 98, 255)
-HAIR_HI = (104, 78, 150, 255)
-HOOD = (226, 224, 236, 255)      # camisola de hospital
-HOOD_SH = (176, 172, 198, 255)
-HOOD_HI = (250, 250, 255, 255)
-BADGE = (94, 200, 214, 255)
-BLOOD = (196, 40, 52, 255)
-LASH = (24, 18, 36, 255)
-PSI = (192, 132, 252, 255)
-PSI_HI = (240, 222, 255, 255)
-PANTS = (44, 46, 74, 255)
-PANTS_SH = (32, 32, 54, 255)
-SHOE = (232, 232, 242, 255)
-SHOE_SH = (150, 150, 176, 255)
-EYE = (24, 18, 36, 255)
-CHEEK = (236, 150, 150, 255)
+PAL = {
+    ".": None,
+    "o": "#262b44",  # contorno colorido
+    "O": "#181425",  # olhos
+    "h": "#c9b2ac",  # sombra fria do cabelo raspado
+    "s": "#fff1dc",  # pele luz (brilho da careca, puxado para o amarelo)
+    "S": "#f2cfa8",  # pele base
+    "k": "#d99a76",  # pele sombra (hue shift para o vermelho)
+    "K": "#a86158",  # pele sombra profunda
+    "w": "#ffffff",  # camisola luz
+    "W": "#c0cbdc",  # camisola base (branco frio)
+    "g": "#8b9bb4",  # camisola sombra
+    "G": "#5a6988",  # camisola dobra
+    "r": "#f6757a",  # bochecha
+    "b": "#e43b44",  # sangue no nariz
+    "c": "#2ce8f5",  # olhos com poder
+    "p": "#b55088",  # brilho psíquico
+}
 
 
-class Canvas:
-    def __init__(self):
-        self.img = Image.new("RGBA", (32, 32), T)
-        self.px = self.img.load()
-
-    def p(self, x, y, c):
-        if 0 <= x < 32 and 0 <= y < 32:
-            self.px[x, y] = c
-
-    def rect(self, x0, y0, x1, y1, c):
-        for y in range(y0, y1 + 1):
-            for x in range(x0, x1 + 1):
-                self.p(x, y, c)
-
-    def outline(self):
-        src = self.img.copy().load()
-        for y in range(32):
-            for x in range(32):
-                if src[x, y][3] == 0:
-                    for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
-                        nx, ny = x + dx, y + dy
-                        if 0 <= nx < 32 and 0 <= ny < 32 and src[nx, ny][3] > 0 and src[nx, ny] != OUT:
-                            self.px[x, y] = OUT
-                            break
+def rgba(hexs):
+    hexs = hexs.lstrip("#")
+    return (int(hexs[0:2], 16), int(hexs[2:4], 16), int(hexs[4:6], 16), 255)
 
 
-def kid(bob=0, step=0.0, arms="down", eyes="open", glow=0.0, airborne=False, hair_float=0):  # hair_float mantido por compatibilidade
-    """bob: deslocamento vertical da parte de cima (0/1). step: fase da passada (-1..1).
-    arms: down | swing | temple | up. eyes: open | blink | glow. glow: brilho da gema 0..1."""
-    c = Canvas()
-    top = 3 + bob  # topo da cabeça
+# ---------------------------------------------------------------- partes (14 colunas, colocadas em x=9)
+HEAD = [  # y 7..17
+    "....oooooo....",
+    "...ohhhsshho..",
+    "..ohhSSssSSho.",
+    "..oSSSSSSSSSSo",
+    ".okSSSSSSSSSSo",
+    "okkkSSSSSSSSSo",
+    "okkkSSOSSSOSSo",
+    ".okkSSOSSSOSSo",
+    ".okkkSSSSSrkSo",
+    "..okkkSSSSSSo.",
+    "...ookkkkkoo..",
+]
+BODY = [  # y 18..26  mangas curtas, decote em V, laço lateral, sombra nas costas
+    "....oGWwWGo...",
+    "..ooGWwgwWWoo.",
+    ".okoGWwwwWWoko",
+    ".oSogWWwwWWoSo",
+    "..oggWWWwWWgo.",
+    "..oGgWWWWWWgo.",
+    ".ogGgWWWWWWWgo",
+    ".oGGggWWWWWggo",
+    ".ooGGGgggggGoo",
+]
+LEGS = {  # y 27..31
+    "stand": [
+        "...okSo.okSo..",
+        "...okSo.okSo..",
+        "...oWWo.oWWo..",
+        "..oWWWo.oWWWo.",
+        "..oooo..oooo..",
+    ],
+    "contact": [
+        "..okSo...okSo.",
+        ".okSo.....okSo",
+        ".oWWo.....oWWo",
+        "oWWWo....oWWWo",
+        "oooo.....oooo.",
+    ],
+    "pass": [
+        "....okSokSo...",
+        "....okSokSo...",
+        "....oWWoWWo...",
+        "...oWWWWWWWo..",
+        "...ooooooooo..",
+    ],
+    "air": [
+        "...okSo.okSo..",
+        "..oWWo..oWWWo.",
+        "..oooo..oooo..",
+        "..............",
+        "..............",
+    ],
+}
 
-    # ---- pernas e tênis (não sobem com o bob)
-    def leg(x, lift, fwd):
-        y_foot = 30 - lift
-        c.rect(x, 25, x + 2, y_foot - 1, SKIN)   # pernas à mostra (camisola)
-        c.p(x, 25, SKIN_SH)
-        c.rect(x + fwd, y_foot, x + 3 + fwd, y_foot + 1, SHOE)
-        c.p(x + fwd, y_foot + 1, SHOE_SH)
-        c.p(x + 3 + fwd, y_foot + 1, SHOE_SH)
 
-    if airborne:
-        leg(11, 3, -1)
-        leg(16, 2, 1)
-    else:
-        a = int(round(step * 2))
-        leg(11, max(0, a), -min(0, a) * 0 + (1 if a < 0 else 0))
-        leg(16, max(0, -a), (1 if a > 0 else 0))
+def frame(legs="stand", bob=0, eyes="open", arm=None, blood=False, dx=0, flare=False, aura=False):
+    grid = [["."] * 32 for _ in range(32)]
 
-    # ---- corpo: camisola de hospital (vestido até o joelho)
-    by = top + 13
-    c.rect(10, by, 21, 25, HOOD)
-    c.rect(9, 23, 22, 25, HOOD)          # barra mais larga
-    c.rect(10, by, 11, 25, HOOD_SH)
-    c.rect(9, 24, 10, 25, HOOD_SH)
-    c.rect(20, by + 1, 21, 25, HOOD_SH)
-    c.rect(13, by, 18, by, HOOD_SH)      # gola
-    c.p(15, by + 3, HOOD_HI)
-    c.p(16, by + 6, HOOD_HI)
-    c.rect(17, by + 3, 19, by + 4, BADGE)  # crachá de paciente
-    c.p(17, by + 3, HOOD_HI)
+    def put(rows, y0, x0=9):
+        for j, row in enumerate(rows):
+            for i, ch in enumerate(row):
+                if ch != "." and 0 <= y0 + j < 32 and 0 <= x0 + i < 32:
+                    grid[y0 + j][x0 + i] = ch
 
-    # ---- braços
-    def arm(side, pose):
-        x = 8 if side < 0 else 22
-        if pose == "down":
-            c.rect(x, by + 1, x + 1, by + 7, HOOD)
-            c.rect(x, by + 8, x + 1, by + 9, SKIN)
-        elif pose == "fwd":
-            c.rect(x, by + 1, x + 1, by + 6, HOOD)
-            c.rect(x + (1 if side > 0 else -1), by + 6, x + (2 if side > 0 else 0), by + 8, SKIN)
-        elif pose == "back":
-            c.rect(x, by + 1, x + 1, by + 6, HOOD_SH)
-            c.rect(x - (1 if side > 0 else -1), by + 7, x - (0 if side > 0 else -1), by + 8, SKIN_SH)
-        elif pose == "temple":  # mão na têmpora, concentrando
-            c.rect(x, by - 2, x + 1, by + 3, HOOD)
-            c.rect(x, by - 4, x + 1, by - 3, SKIN)
-        elif pose == "up":
-            c.rect(x, by - 5, x + 1, by + 2, HOOD)
-            c.rect(x, by - 7, x + 1, by - 6, SKIN)
-
-    if arms == "down":
-        arm(-1, "down"); arm(1, "down")
-    elif arms == "swing":
-        if step >= 0:
-            arm(-1, "back"); arm(1, "fwd")
-        else:
-            arm(-1, "fwd"); arm(1, "back")
-    elif arms == "temple":
-        arm(-1, "down"); arm(1, "temple")
-    elif arms == "up":
-        arm(-1, "up"); arm(1, "up")
-
-    # ---- cabeça raspada, redonda (14 x 13), olhando para a direita
-    hx0, hx1 = 9, 22
-    hy0, hy1 = top, top + 12
-    rows = [(4, 4), (2, 2), (1, 1), (0, 0), (0, 0), (0, 0), (0, 0), (0, 0), (0, 0), (0, 0), (1, 1), (2, 1), (3, 3)]
-    for i, (l, r) in enumerate(rows):
-        c.rect(hx0 + l, hy0 + i, hx1 - r, hy0 + i, SKIN)
-    for i in range(5, 11):
-        c.p(hx0, hy0 + i, SKIN_SH)                    # sombra da nuca
-    c.rect(hx0 + 1, hy0 + 9, hx0 + 2, hy0 + 11, SKIN_SH)
-    c.rect(hx0 + 5, hy0 + 1, hx0 + 8, hy0 + 1, (255, 232, 206, 255))  # brilho da careca
-    c.rect(hx0 + 4, hy0 + 2, hx0 + 5, hy0 + 2, (255, 232, 206, 255))
-    c.p(11, hy0 + 7, SKIN_SH)  # orelha
-    c.p(11, hy0 + 8, SKIN_SH)
-    # sobrancelhas
-    ey = hy0 + 6
-    c.rect(15, ey - 2, 16, ey - 2, SKIN_SH)
-    c.rect(19, ey - 2, 21, ey - 2, SKIN_SH)
-    # olhos grandes com cílios
+    put(LEGS[legs], 27, 9)
+    body = [list(r) for r in BODY]
+    head = [list(r) for r in HEAD]
     if eyes == "blink":
-        c.rect(15, ey + 1, 16, ey + 1, LASH)
-        c.rect(19, ey + 1, 20, ey + 1, LASH)
-    else:
-        col = PSI_HI if eyes == "glow" else EYE
-        c.rect(15, ey, 16, ey + 2, col)
-        c.rect(19, ey, 20, ey + 2, col)
-        c.rect(15, ey - 1, 16, ey - 1, LASH)   # cílios
-        c.rect(19, ey - 1, 21, ey - 1, LASH)
-        c.p(14, ey - 1, LASH)
-        if eyes != "glow":
-            c.p(16, ey, SHOE)
-            c.p(20, ey, SHOE)
-    c.p(14, ey + 3, CHEEK)
-    c.p(21, ey + 3, CHEEK)
-    c.p(18, ey + 4, (214, 120, 128, 255))  # boca
-    if eyes == "glow" and glow > 0.4:
-        c.p(18, ey + 3, BLOOD)  # esforço psíquico: um fio de sangue no nariz
-    c.outline()
-    return c.img
+        for r in (6, 7):
+            head[r][6] = "S"
+            head[r][10] = "S"
+        head[7][6] = "k"
+        head[7][10] = "k"
+    elif eyes == "glow":
+        for r in (6, 7):
+            head[r][6] = "c"
+            head[r][10] = "c"
+    if blood:
+        head[8][11] = "b"
+        head[9][11] = "b"
+    if flare:  # camisola esvoaçando para trás
+        body[6] = list("ogGgWWWWWWWgo.")
+        body[7] = list("oGGggWWWWWggo.")
+        body[8] = list("ooGGGgggggGoo.")
+    put(["".join(r) for r in head], 7 + bob, 9 + dx)
+    put(["".join(r) for r in body], 18 + bob, 9 + dx)
+
+    if arm == "forward":  # braço estendido para a frente (manga + antebraço de 2 px + mão aberta)
+        put(["ooooo..", "WWkSSoo", "gWkSSSo", "ooooooo"], 19 + bob, 21 + dx)
+    elif arm == "up":  # pulo: braços para cima
+        put([".oSo", ".okSo", "ogWo", "ogWo"], 15 + bob, 20 + dx)
+        put(["oSo.", "oSko", "oWgo"], 15 + bob, 7 + dx)
+    elif arm == "swing_f":  # mão da frente balançando, colada ao corpo
+        put(["oSo", "oo."], 22 + bob, 22 + dx)
+    if aura:
+        for (x, y) in ((27, 17), (29, 19), (28, 22), (30, 21), (26, 15)):
+            if 0 <= x + dx < 32:
+                grid[y + bob][x + dx] = "p" if (x + y) % 2 else "c"
+
+    img = Image.new("RGBA", (32, 32), (0, 0, 0, 0))
+    px = img.load()
+    for y in range(32):
+        for x in range(32):
+            col = PAL[grid[y][x]]
+            if col:
+                px[x, y] = rgba(col)
+    return img
 
 
 def sheet(name, cols, rows, frames):
-    img = Image.new("RGBA", (cols * 32, rows * 32), T)
+    img = Image.new("RGBA", (cols * 32, rows * 32), (0, 0, 0, 0))
     for i, f in enumerate(frames):
         img.paste(f, ((i % cols) * 32, (i // cols) * 32))
     img.save(CHAR / name)
@@ -177,50 +164,64 @@ def sheet(name, cols, rows, frames):
 
 
 def build():
-    out = {}
-    idle = []
-    for i in range(8):
-        bob = 1 if i in (2, 3, 4) else 0
-        idle.append(kid(bob=bob, eyes="blink" if i == 6 else "open"))
-    out["idle.png"] = sheet("idle.png", 3, 3, idle)
-
+    idle = [frame(bob=1 if i in (2, 3, 4) else 0, eyes="blink" if i == 6 else "open") for i in range(8)]
+    cycle = [("contact", 0), ("contact", 1), ("pass", 0), ("contact", 0), ("contact", 1), ("pass", 0)]
     walk = []
     for i in range(14):
-        ph = math.sin(i / 14 * 2 * math.pi * 2)  # duas passadas por ciclo
-        walk.append(kid(bob=1 if abs(ph) < 0.4 else 0, step=ph, arms="swing"))
-    out["walking.png"] = sheet("walking.png", 4, 4, walk)
-
-    out["jumping.png"] = sheet("jumping.png", 1, 1, [kid(arms="up", airborne=True, hair_float=1)])
-
+        legs, bob = cycle[i % 6]
+        walk.append(frame(legs=legs, bob=bob, arm="swing_f" if i % 6 < 3 else None))
+    jump = [frame(legs="air", arm="up")]
     power = []
     for i in range(10):
-        pulse = 0.5 + 0.5 * math.sin(i / 10 * 2 * math.pi)
-        power.append(kid(bob=1 if i % 4 in (1, 2) else 0, arms="temple", eyes="glow", glow=pulse, hair_float=1 if pulse > 0.5 else 0))
-    out["power.png"] = sheet("power.png", 3, 4, power)
+        if i < 2:
+            power.append(frame(bob=1, dx=-1))
+        else:
+            power.append(frame(arm="forward", eyes="glow", blood=i >= 4, dx=(i % 2), flare=True, aura=True))
+    pw = [frame(legs="contact", arm="forward", eyes="glow", flare=True, aura=True),
+          frame(legs="pass", bob=1, arm="forward", eyes="glow", flare=True, aura=True)]
+    sheet("idle.png", 3, 3, idle)
+    sheet("walking.png", 4, 4, walk)
+    sheet("jumping.png", 1, 1, jump)
+    sheet("power.png", 3, 4, power)
+    sheet("power_walking.png", 1, 2, pw)
+    sheet("player.png", 1, 1, [idle[0]])
+    return idle, walk, jump, power
 
-    pw = [kid(step=0.8, arms="temple", eyes="glow", glow=1, hair_float=1),
-          kid(step=-0.8, bob=1, arms="temple", eyes="glow", glow=0.6)]
-    out["power_walking.png"] = sheet("power_walking.png", 1, 2, pw)
 
-    out["player.png"] = sheet("player.png", 1, 1, [kid()])
-    return out
+def preview(dest, idle, walk, jump, power, bg_path=None):
+    Z = 8
+    picks = [("parada", idle[0]), ("piscando", idle[6]), ("andando: contato", walk[0]), ("andando: passagem", walk[2]),
+             ("pulo", jump[0]), ("poder: antecipação", power[0]), ("poder", power[5])]
+    W = 40 + len(picks) * (32 * Z + 16)
+    H = 32 * Z + 280
+    img = Image.new("RGBA", (W, H), (24, 20, 36, 255))
+    d = ImageDraw.Draw(img)
+    fb = ImageFont.truetype("C:/Windows/Fonts/segoeuib.ttf", 30)
+    fs = ImageFont.truetype("C:/Windows/Fonts/seguisb.ttf", 20)
+    d.text((40, 20), "PSI-KID: protagonista v2 (pixel a pixel · paleta Endesga 32 · contorno colorido + selout)", font=fb, fill=(240, 240, 250))
+    x = 40
+    for label, f in picks:
+        d.rectangle((x, 70, x + 32 * Z, 70 + 32 * Z), fill=(38, 32, 56))
+        big = f.resize((32 * Z, 32 * Z), Image.NEAREST)
+        img.paste(big, (x, 70), big)
+        d.text((x, 76 + 32 * Z), label, font=fs, fill=(200, 200, 220))
+        x += 32 * Z + 16
+    y = 70 + 32 * Z + 50
+    if bg_path:
+        bg = Image.open(bg_path).convert("RGBA").resize((W - 80, 110))
+        img.paste(bg, (40, y))
+    x = 80
+    for _, f in picks:
+        s = f.resize((96, 96), Image.NEAREST)
+        img.paste(s, (x, y + 8), s)
+        x += 150
+    img.save(dest)
 
 
 if __name__ == "__main__":
-    sheets = build()
+    idle, walk, jump, power = build()
     if "--preview" in sys.argv:
-        dest = sys.argv[sys.argv.index("--preview") + 1]
-        frames = []
-        for n in ["idle.png", "walking.png", "jumping.png", "power.png"]:
-            im = sheets[n]
-            for r in range(im.height // 32):
-                for c2 in range(im.width // 32):
-                    cell = im.crop((c2 * 32, r * 32, c2 * 32 + 32, r * 32 + 32))
-                    if cell.getbbox():
-                        frames.append(cell)
-        prev = Image.new("RGBA", (len(frames) * 34, 34), (40, 34, 64, 255))
-        for i, f in enumerate(frames):
-            prev.paste(f, (i * 34 + 1, 1), f)
-        prev = prev.resize((prev.width * 4, prev.height * 4), Image.NEAREST)
-        prev.save(dest)
+        i = sys.argv.index("--preview")
+        bg = sys.argv[i + 2] if len(sys.argv) > i + 2 else None
+        preview(sys.argv[i + 1], idle, walk, jump, power, bg)
     print("ok")

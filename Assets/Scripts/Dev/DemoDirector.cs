@@ -20,6 +20,8 @@ using UnityEngine;
 ///   hold x,y -> x,y [s]    same as drag, but keep holding (release with 'release')
 ///   release                release the pointer
 ///   mark name              write a marker to events.txt (for the editor)
+///   fly x,y,size -> x,y,size s   take the camera off Cinemachine and glide it (level fly-over)
+///   follow                 hand the camera back to Cinemachine
 ///
 /// Every sound effect played and every marker is written to events.txt with its
 /// frame number, so the edit can place SFX and captions on the right frame.
@@ -119,6 +121,12 @@ public class DemoDirector : MonoBehaviour {
                     input.pointerHeld = false;
                     yield return null;
                     break;
+                case "fly":
+                    yield return Fly(a[1], a[3], a.Length > 4 ? F(a[4]) : 4f);
+                    break;
+                case "follow":
+                    SetBrain(true);
+                    break;
                 case "mark":
                     Log("mark " + string.Join(" ", a, 1, a.Length - 1));
                     break;
@@ -130,6 +138,32 @@ public class DemoDirector : MonoBehaviour {
         Done = true;
         if (quitWhenDone) {
             Application.Quit();
+        }
+    }
+
+    private void SetBrain(bool on) {
+        var cam = Camera.main;
+        if (cam == null) return;
+        foreach (var b in cam.GetComponents<Behaviour>()) {
+            if (b.GetType().Name == "CinemachineBrain") b.enabled = on;
+        }
+    }
+
+    private IEnumerator Fly(string from, string to, float seconds) {
+        var cam = Camera.main;
+        SetBrain(false);
+        var f = from.Split(',');
+        var t2 = to.Split(',');
+        Vector3 p0 = new Vector3(F(f[0]), F(f[1]), cam.transform.position.z);
+        Vector3 p1 = new Vector3(F(t2[0]), F(t2[1]), cam.transform.position.z);
+        float s0 = F(f[2]), s1 = F(t2[2]);
+        float t = 0f;
+        while (t < 1f) {
+            t = Mathf.Min(1f, t + Time.deltaTime / seconds);
+            float e = t * t * (3f - 2f * t);
+            cam.transform.position = Vector3.Lerp(p0, p1, e);
+            cam.orthographicSize = Mathf.Lerp(s0, s1, e);
+            yield return null;
         }
     }
 
