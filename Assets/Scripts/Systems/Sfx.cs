@@ -5,6 +5,7 @@ using UnityEngine;
 /// Tiny sound-effect player. Clips live in <c>Resources/Sfx</c> and are loaded by
 /// name on first use, so gameplay scripts can play feedback without scene wiring.
 /// One-shots go through a small pool; <see cref="Loop"/> returns a dedicated source.
+/// Volumes are scaled by the effects volume in <see cref="GameSettings"/>.
 /// </summary>
 public static class Sfx {
     private const int PoolSize = 8;
@@ -50,7 +51,7 @@ public static class Sfx {
         var src = pool[next];
         next = (next + 1) % PoolSize;
         src.pitch = pitch;
-        src.PlayOneShot(clip, volume);
+        src.PlayOneShot(clip, volume * GameSettings.Sfx);
         Played?.Invoke(name);
     }
 
@@ -64,7 +65,7 @@ public static class Sfx {
         src.transform.SetParent(parent, false);
         src.clip = clip;
         src.loop = true;
-        src.volume = volume;
+        src.volume = volume * GameSettings.Sfx;
         src.Play();
         Played?.Invoke(name);
         return src;

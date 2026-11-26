@@ -25,6 +25,9 @@ public class PauseManager : MonoBehaviour {
     }
 
     private void TogglePause() {
+        if (SettingsMenu.IsBusy) {
+            return; // Esc closes the settings panel first
+        }
         if (isPaused) {
             ResumeGame();
         } else {
@@ -36,6 +39,11 @@ public class PauseManager : MonoBehaviour {
         Time.timeScale = 0f;
         isPaused = true;
         pausePanelUI.SetActive(true);
+    }
+
+    /// <summary>Opens the shared settings panel over the pause menu.</summary>
+    public void OpenSettings() {
+        SettingsMenu.Open();
     }
 
     /// <summary>Resumes gameplay and hides the pause panel.</summary>

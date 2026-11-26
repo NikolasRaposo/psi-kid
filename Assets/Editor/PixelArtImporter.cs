@@ -4,7 +4,7 @@ using UnityEngine;
 /// <summary>
 /// Import settings for the generated pixel art in Resources/Art: 16 pixels per
 /// unit, point filtering, no compression. The back wall tiles (repeat + full rect)
-/// so it can fill a room in Tiled draw mode.
+/// so it can fill a room in Tiled draw mode. UI sprites (ui_*) get 9-slice borders.
 /// </summary>
 public class PixelArtImporter : AssetPostprocessor {
     private void OnPreprocessTexture() {
@@ -35,5 +35,14 @@ public class PixelArtImporter : AssetPostprocessor {
             settings.spriteAlignment = (int)SpriteAlignment.Center;
         }
         ti.SetTextureSettings(settings);
+
+        // UI pieces are 9-sliced: keep the full rect and set the corner borders.
+        string file = System.IO.Path.GetFileNameWithoutExtension(assetPath);
+        if (file.StartsWith("ui_")) {
+            float b = file.StartsWith("ui_button") ? 5f : file == "ui_panel" ? 8f : file.StartsWith("ui_slider") ? 3f : 0f;
+            settings.spriteBorder = new Vector4(b, b, b, b);
+            settings.spriteMeshType = SpriteMeshType.FullRect;
+            ti.SetTextureSettings(settings);
+        }
     }
 }

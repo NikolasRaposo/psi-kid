@@ -230,3 +230,122 @@ def tutorial_icon():
 
 if __name__ == "__main__" and "--tutorial" in __import__("sys").argv:
     tutorial_icon()
+
+
+# ---------------------------------------------------------------- interface (9-slice; bordas definidas no PixelArtImporter)
+UI_FILL = (36, 30, 60, 255)
+UI_FILL_HOVER = (86, 52, 138, 255)
+UI_FILL_PRESS = (62, 38, 104, 255)
+
+
+def ui_button(state):
+    """Botão 24x16: contorno escuro, face com brilho no topo e 2 px de sombra embaixo (pressionado afunda)."""
+    w, h = 24, 16
+    img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    fill, line, hl = {
+        "normal": (UI_FILL, CYAN_DIM, STEEL_0),
+        "hover": (UI_FILL_HOVER, PSI, PSI_HI),
+        "pressed": (UI_FILL_PRESS, PSI, PSI),
+    }[state]
+    top = 1 if state == "pressed" else 0
+    bottom = h - 1
+    # sombra (profundidade)
+    if state != "pressed":
+        d.rectangle([1, h - 3, w - 2, h - 1], fill=WALL_SH)
+        bottom = h - 3
+    d.rectangle([0, top, w - 1, bottom], fill=OUTLINE)
+    d.rectangle([1, top + 1, w - 2, bottom - 1], fill=fill)
+    d.rectangle([1, top + 1, w - 2, bottom - 1], outline=line)
+    d.line([2, top + 2, w - 3, top + 2], fill=hl)
+    # cantos arredondados de 1 px
+    for x, y in [(0, top), (w - 1, top), (0, bottom), (w - 1, bottom)]:
+        img.putpixel((x, y), (0, 0, 0, 0))
+    if state != "pressed":
+        img.putpixel((0, h - 1), (0, 0, 0, 0))
+        img.putpixel((w - 1, h - 1), (0, 0, 0, 0))
+    return img
+
+
+def ui_panel():
+    """Painel 32x32 translúcido com cantoneiras ciano e parafusos."""
+    s = 32
+    img = Image.new("RGBA", (s, s), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    d.rectangle([0, 0, s - 1, s - 1], fill=OUTLINE)
+    d.rectangle([1, 1, s - 2, s - 2], fill=(20, 16, 36, 242))
+    d.rectangle([2, 2, s - 3, s - 3], outline=WALL_HI)
+    d.line([3, 3, s - 4, 3], fill=(52, 44, 82, 255))
+    for cx, cy, dx, dy in [(2, 2, 1, 1), (s - 3, 2, -1, 1), (2, s - 3, 1, -1), (s - 3, s - 3, -1, -1)]:
+        for i in range(5):
+            img.putpixel((cx + dx * i, cy), CYAN)
+            img.putpixel((cx, cy + dy * i), CYAN)
+        img.putpixel((cx + dx * 3, cy + dy * 3), STEEL_2)
+    for x, y in [(0, 0), (s - 1, 0), (0, s - 1), (s - 1, s - 1)]:
+        img.putpixel((x, y), (0, 0, 0, 0))
+    return img
+
+
+def ui_slider(kind):
+    """Trilho (escuro) e preenchimento (roxo) 12x8 do slider."""
+    w, h = 12, 8
+    img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    d.rectangle([0, 0, w - 1, h - 1], fill=OUTLINE)
+    if kind == "track":
+        d.rectangle([1, 1, w - 2, h - 2], fill=WALL_SH)
+        d.line([1, h - 2, w - 2, h - 2], fill=WALL_HI)
+    else:
+        d.rectangle([1, 1, w - 2, h - 2], fill=PSI)
+        d.line([1, 1, w - 2, 1], fill=PSI_HI)
+        d.line([1, h - 2, w - 2, h - 2], fill=(130, 80, 200, 255))
+    for x, y in [(0, 0), (w - 1, 0), (0, h - 1), (w - 1, h - 1)]:
+        img.putpixel((x, y), (0, 0, 0, 0))
+    return img
+
+
+def ui_knob():
+    """Cursor do slider 10x14: peça de aço com friso ciano."""
+    w, h = 10, 14
+    img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    d.rectangle([0, 0, w - 1, h - 1], fill=OUTLINE)
+    d.rectangle([1, 1, w - 2, h - 2], fill=STEEL_1)
+    d.line([1, 1, w - 2, 1], fill=STEEL_3)
+    d.line([1, h - 2, w - 2, h - 2], fill=STEEL_0)
+    d.line([w // 2 - 1, 4, w // 2 - 1, h - 5], fill=CYAN)
+    d.line([w // 2, 4, w // 2, h - 5], fill=CYAN_DIM)
+    for x, y in [(0, 0), (w - 1, 0), (0, h - 1), (w - 1, h - 1)]:
+        img.putpixel((x, y), (0, 0, 0, 0))
+    return img
+
+
+def ui_toggle(on):
+    """Caixa de seleção 12x12; ligada mostra o quadrado ciano aceso."""
+    s = 12
+    img = Image.new("RGBA", (s, s), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    d.rectangle([0, 0, s - 1, s - 1], fill=OUTLINE)
+    d.rectangle([1, 1, s - 2, s - 2], fill=WALL_SH)
+    d.rectangle([1, 1, s - 2, s - 2], outline=CYAN_DIM if not on else CYAN)
+    if on:
+        d.rectangle([3, 3, s - 4, s - 4], fill=CYAN)
+        d.line([3, 3, s - 4, 3], fill=(200, 250, 255, 255))
+    for x, y in [(0, 0), (s - 1, 0), (0, s - 1), (s - 1, s - 1)]:
+        img.putpixel((x, y), (0, 0, 0, 0))
+    return img
+
+
+def interface():
+    for st in ("normal", "hover", "pressed"):
+        save(ui_button(st), f"ui_button_{st}.png")
+    save(ui_panel(), "ui_panel.png")
+    save(ui_slider("track"), "ui_slider_track.png")
+    save(ui_slider("fill"), "ui_slider_fill.png")
+    save(ui_knob(), "ui_knob.png")
+    save(ui_toggle(False), "ui_toggle_off.png")
+    save(ui_toggle(True), "ui_toggle_on.png")
+
+
+if __name__ == "__main__" and "--ui" in __import__("sys").argv:
+    interface()
