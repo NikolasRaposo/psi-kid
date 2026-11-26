@@ -40,6 +40,7 @@ public class ElevatorController : MonoBehaviour {
     private void TeleportPlayer(GameObject player) {
         if (playerOnElevator) {
             player.transform.position = destinationPoint.position;
+            Sfx.Play("teleport", 0.4f);
         }
     }
 }

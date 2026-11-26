@@ -2,12 +2,18 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 
 /// <summary>
-/// Main menu buttons: start the first level, open/close the settings panel and
-/// quit the application.
+/// Main menu buttons: start the first level, open the settings panel and quit
+/// the application (hidden in the browser build, where quitting does nothing).
 /// </summary>
 public class MainMenuController : MonoBehaviour {
-    [Tooltip("Settings panel toggled by the settings button.")]
-    [SerializeField] private GameObject settingsPanel;
+    [Tooltip("Quit button, hidden on WebGL.")]
+    [SerializeField] private GameObject exitButton;
+
+    private void Start() {
+        if (exitButton != null && Application.platform == RuntimePlatform.WebGLPlayer) {
+            exitButton.SetActive(false);
+        }
+    }
 
     /// <summary>Loads the first gameplay scene (build index 1).</summary>
     public void StartGame() {
@@ -15,11 +21,7 @@ public class MainMenuController : MonoBehaviour {
     }
 
     public void OpenSettings() {
-        settingsPanel.SetActive(true);
-    }
-
-    public void CloseSettings() {
-        settingsPanel.SetActive(false);
+        SettingsMenu.Open();
     }
 
     /// <summary>Quits the game (stops play mode in the editor).</summary>

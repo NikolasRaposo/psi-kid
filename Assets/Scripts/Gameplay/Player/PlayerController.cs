@@ -2,10 +2,9 @@ using System;
 using UnityEngine;
 
 /// <summary>
-/// Drives the player's horizontal movement, jumping, ground check and sprite
-/// facing. Interaction (e.g. elevators) is received from
-/// <see cref="PlayerInputHandler"/>; horizontal movement and jump are read from
-/// the legacy input axes.
+/// Drives the player's horizontal movement, jumping, ground check, sprite
+/// facing and interaction (elevators). All input comes from <see cref="GameInput"/>
+/// (Input System: keyboard, mouse or gamepad, or a scripted source).
 /// </summary>
 [RequireComponent(typeof(Rigidbody2D))]
 public class PlayerController : MonoBehaviour {
@@ -39,23 +38,18 @@ public class PlayerController : MonoBehaviour {
         }
     }
 
-    private void OnEnable() {
-        PlayerInputHandler.OnInteraction += HandleInteraction;
-    }
-
-    private void OnDisable() {
-        PlayerInputHandler.OnInteraction -= HandleInteraction;
-    }
-
     private void Update() {
         isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckDistance, groundLayer);
-        moveInput = Input.GetAxisRaw("Horizontal");
+        moveInput = GameInput.MoveX;
 
         HandleAnimations();
         FlipSprite();
 
-        if (Input.GetButtonDown("Jump") && isGrounded) {
+        if (GameInput.JumpPressed && isGrounded) {
             Jump();
+        }
+        if (GameInput.InteractPressed) {
+            HandleInteraction();
         }
     }
 
@@ -65,6 +59,7 @@ public class PlayerController : MonoBehaviour {
 
     private void Jump() {
         rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
+        Sfx.Play("jump", 0.35f, UnityEngine.Random.Range(0.95f, 1.08f));
     }
 
     private void HandleInteraction() {
