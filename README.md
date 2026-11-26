@@ -29,6 +29,14 @@
 - **One input layer** (`GameInput`) on the Input System for keyboard, mouse and gamepad, with a replaceable source used by a **scripted demo director** that plays the level and records 1080p frames for trailers.
 - **Level design**: 7 rooms that introduce one rule at a time, ending in a multi-floor challenge room.
 
+## Gallery
+
+| Pressure plates hold doors open | Chained puzzle (real solve, 1.5x) |
+|---|---|
+| ![Removing the crate closes the door; putting it back opens it](docs/media/psi-kid-plate-rule.gif) | ![Three crates and three chained plates open the way](docs/media/psi-kid-chained-puzzle.gif) |
+| **Event-driven elevators** | **Level design: 7 rooms** |
+| ![Standing on the pad and pressing Shift moves her a floor](docs/media/psi-kid-elevator.gif) | ![Camera fly-over of the whole level](docs/media/psi-kid-level-design.gif) |
+
 ## Context, goal, challenges, learnings
 
 **Context.** A solo project for FIAP's Game Development course, reviewed at every stage. In 2026 I reworked it as a portfolio piece: new art, feedback, sound and tooling.
